@@ -1,9 +1,10 @@
-
-FROM gradle:8.8-jdk17
+# Build stage
+FROM gradle:8.8-jdk17 AS build
 WORKDIR /app
 COPY . .
 RUN gradle build --no-daemon -x test
 
+# Run stage
 FROM eclipse-temurin:17-jdk
 WORKDIR /app
 COPY --from=build /app/build/libs/app.jar app.jar
