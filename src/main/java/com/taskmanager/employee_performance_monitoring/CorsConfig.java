@@ -14,10 +14,16 @@ public class CorsConfig {
     @Bean
     public CorsFilter corsFilter() {
         CorsConfiguration config = new CorsConfiguration();
+
         config.setAllowCredentials(true);
-        config.addAllowedOrigin("http://localhost:5173");  // ✅ addAllowedOrigin not setAllowedOrigins
-        config.addAllowedHeader("*");
-        config.addAllowedMethod("*");                      // ✅ covers OPTIONS preflight too
+
+        config.setAllowedOrigins(Arrays.asList(
+                "http://localhost:5173", // local
+                "https://employee-performance-9y66.onrender.com" // deployed frontend
+        ));
+
+        config.setAllowedHeaders(Arrays.asList("*"));
+        config.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS"));
 
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/**", config);
