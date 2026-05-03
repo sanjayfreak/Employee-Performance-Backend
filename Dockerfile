@@ -1,5 +1,5 @@
 
-FROM gradle:8.5-jdk17 AS build
+FROM gradle:8.8-jdk17
 WORKDIR /app
 COPY . .
 RUN gradle build --no-daemon -x test
