@@ -10,7 +10,7 @@ import org.springframework.stereotype.Component;
 @Component
 public class StartupConfigLogger {
 
-    public StartupConfigLogger(@Value("${spring.data.mongodb.uri:NOT_SET}") String uri) {
+    public StartupConfigLogger(@Value("${spring.mongodb.uri:NOT_SET}") String uri) {
         String safe = uri.replaceAll("://[^@/]+@", "://***:***@");
         System.out.println(">>>>> MONGO URI IN USE: " + safe);
     }
