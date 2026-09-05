@@ -1,7 +1,5 @@
 package com.taskmanager.employee_performance_monitoring;
 
-import com.taskmanager.employee_performance_monitoring.User;
-import com.taskmanager.employee_performance_monitoring.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -22,19 +20,32 @@ public class AuthController {
     @PostMapping("/register")
     public ResponseEntity<?> register(@RequestBody User user) {
 
-        // 🔴 Basic validation
-        if (user.getEmail() == null || user.getPassword() == null || user.getRole() == null) {
+        if (user.getEmail() == null || user.getEmail().isBlank()
+                || user.getPassword() == null || user.getPassword().isBlank()
+                || user.getRole() == null || user.getRole().isBlank()) {
             return ResponseEntity.badRequest().body("Missing required fields");
         }
 
-        Optional<User> existing = userRepository.findByEmail(user.getEmail());
+        try {
+            String email = user.getEmail().trim().toLowerCase();
 
-        if (existing.isPresent()) {
+            if (userRepository.existsByEmail(email)) {
+                return ResponseEntity.badRequest().body("User already exists");
+            }
+
+            user.setEmail(email);
+            user.setRole(user.getRole().trim().toUpperCase());
+            userRepository.save(user);
+
+            return ResponseEntity.ok("User registered successfully");
+
+        } catch (org.springframework.dao.DuplicateKeyException e) {
             return ResponseEntity.badRequest().body("User already exists");
+        } catch (Exception e) {
+            e.printStackTrace();
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body("Register failed: " + e.getMessage());
         }
-
-        userRepository.save(user);
-        return ResponseEntity.ok("User registered successfully");
     }
 
     // =========================
@@ -43,36 +54,43 @@ public class AuthController {
     @PostMapping("/login")
     public ResponseEntity<?> login(@RequestBody LoginRequest loginRequest) {
 
-        // 🔴 Null / empty checks
-        if (loginRequest.getEmail() == null || loginRequest.getPassword() == null) {
+        if (loginRequest.getEmail() == null || loginRequest.getEmail().isBlank()
+                || loginRequest.getPassword() == null || loginRequest.getPassword().isBlank()) {
             return ResponseEntity.badRequest().body("Email or password missing");
         }
 
-        Optional<User> existing = userRepository.findByEmail(loginRequest.getEmail());
+        try {
+            String email = loginRequest.getEmail().trim().toLowerCase();
 
-        if (existing.isEmpty()) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-                    .body("User not found");
+            Optional<User> existing = userRepository.findFirstByEmail(email);
+
+            if (existing.isEmpty()) {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("User not found");
+            }
+
+            User dbUser = existing.get();
+
+            if (!loginRequest.getPassword().equals(dbUser.getPassword())) {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Invalid password");
+            }
+
+            if (loginRequest.getRole() != null && !loginRequest.getRole().isBlank()
+                    && !loginRequest.getRole().trim().equalsIgnoreCase(dbUser.getRole())) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                        .body("Access denied for this role");
+            }
+
+            return ResponseEntity.ok(new LoginResponse(
+                    dbUser.getId(),
+                    dbUser.getName(),
+                    dbUser.getRole()
+            ));
+
+        } catch (Exception e) {
+            e.printStackTrace();
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body("Login failed: " + e.getMessage());
         }
-
-        User dbUser = existing.get();
-
-        // 🔴 Safe comparison
-        if (!loginRequest.getPassword().equals(dbUser.getPassword())) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-                    .body("Invalid password");
-        }
-
-        if (!loginRequest.getRole().equals(dbUser.getRole())) {
-            return ResponseEntity.status(HttpStatus.FORBIDDEN)
-                    .body("Access denied for this role");
-        }
-
-        return ResponseEntity.ok(new LoginResponse(
-                dbUser.getId(),
-                dbUser.getName(),
-                dbUser.getRole()
-        ));
     }
 
     // =========================
@@ -86,6 +104,10 @@ public class AuthController {
         public String getEmail() { return email; }
         public String getPassword() { return password; }
         public String getRole() { return role; }
+
+        public void setEmail(String email) { this.email = email; }
+        public void setPassword(String password) { this.password = password; }
+        public void setRole(String role) { this.role = role; }
     }
 
     // =========================

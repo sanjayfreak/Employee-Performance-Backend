@@ -26,6 +26,23 @@ public class TaskController {
     }
 
     // =========================
+// ✅ SUBMIT PROOF
+// =========================
+    @PostMapping("/{id}/submit-proof")
+    public ResponseEntity<?> submitProof(
+            @PathVariable String id,
+            @RequestBody Map<String, String> body) {
+        try {
+            return ResponseEntity.ok(taskService.submitProof(
+                    id,
+                    body.get("proofLink"),
+                    body.get("proofDescription")
+            ));
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
+    }
+    // =========================
     // 🔹 UPDATE STATUS
     // =========================
     @PutMapping("/{id}")
@@ -34,6 +51,14 @@ public class TaskController {
             @RequestBody Task updatedTask) {
         try {
             return ResponseEntity.ok(taskService.updateTask(id, updatedTask));
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
+    }
+    @PostMapping("/{id}/approve")
+    public ResponseEntity<?> approveTask(@PathVariable String id) {
+        try {
+            return ResponseEntity.ok(taskService.approveTask(id));
         } catch (RuntimeException e) {
             return ResponseEntity.badRequest().body(e.getMessage());
         }
